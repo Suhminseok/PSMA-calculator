@@ -73,27 +73,39 @@ os_pts    = compute_os_score(inputs, ldh_flag, alp_flag, opiate_flag, psma_ln_fl
 rpfs_pts  = compute_rpfs_score(inputs, opiate_flag, inputs["Lymphocytes"], liver_flag, ldh_flag, alp_flag)
 psa50_pts = compute_psa50_score(inputs, inputs["Lymphocytes"], alp_flag)
 
-# --- Map Points to Probabilities (placeholder interpolation) ---
-os12      = np.interp(os_pts,    [0,100,200], [0.2,0.6,0.95])
-os24      = np.interp(os_pts,    [0,100,200], [0.1,0.4,0.85])
-pfs12     = np.interp(rpfs_pts,  [0,100,200], [0.25,0.55,0.90])
-pfs24     = np.interp(rpfs_pts,  [0,100,200], [0.15,0.35,0.75])
-psa50_prob = 1/(1+np.exp(-(psa50_pts - 5)/2))  # logistic placeholder
+# --- Map Points to Probabilities via linear interpolation using provided anchors ---
+# OS 12-mo anchors: points ascending, probabilities descending
+os12_points = [146, 168, 181, 191, 200, 224, 232]
+os12_probs  = [0.9, 0.8, 0.7, 0.6, 0.5, 0.2, 0.1]
+# OS 24-mo anchors
+os24_points = [109, 130, 144, 154, 187, 196]
+os24_probs  = [0.9, 0.8, 0.7, 0.6, 0.2, 0.1]
+# rPFS 12-mo anchors
+pfs12_points = [109, 132, 144, 154, 163, 170, 178, 186, 196]
+pfs12_probs  = [0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1]
+# rPFS 24-mo anchors
+pfs24_points = [ 72,  93, 107, 116, 125, 159]
+pfs24_probs  = [0.9, 0.8, 0.7, 0.6, 0.5, 0.1]
+# PSA50 response anchors
+psa_points   = [10.3, 16.2, 36, 42, 51.8]
+psa_probs    = [0.2,  0.3, 0.7,0.8, 0.9]
 
-# --- Display Probabilities ---
-col1, col2, col3 = st.columns(3)
-with col1:
-    st.subheader("Overall Survival Probability")
-    st.metric("12-mo OS",   f"{os12*100:.1f}%")
-    st.metric("24-mo OS",   f"{os24*100:.1f}%")
-with col2:
-    st.subheader("Radiographic PFS Probability")
-    st.metric("12-mo rPFS", f"{pfs12*100:.1f}%")
-    st.metric("24-mo rPFS", f"{pfs24*100:.1f}%")
-with col3:
-    st.subheader("PSA50 Response Probability")
-    st.metric("PSA50",      f"{psa50_prob*100:.1f}%")
+# Clip total point values
+os_pts_clipped   = np.clip(os_pts,    min(os12_points),   max(os12_points))
+    
+rpfs_pts_clipped = np.clip(rpfs_pts,  min(pfs12_points),  max(pfs12_points))
+psa_pts_clipped  = np.clip(psa50_pts, min(psa_points),    max(psa_points))
 
-st.markdown("---")
-st.caption("Note: Probability mappings are placeholders. Update interpolation anchors based on published nomogram curves.")
+# Interpolate
+os12       = np.interp(os_pts_clipped,   os12_points,  os12_probs)
+os24       = np.interp(os_pts_clipped,   os24_points,  os24_probs)
+pfs12      = np.interp(rpfs_pts_clipped, pfs12_points,pfs12_probs)
+pfs24      = np.interp(rpfs_pts_clipped, pfs24_points,pfs24_probs)
+psa50_prob = np.interp(psa_pts_clipped,  psa_points,   psa_probs)
 
+# Multiply by 100 for percent
+os12 *= 100
+os24 *= 100
+pfs12 *= 100
+pfs24 *= 100
+psa50_prob *= 100
