@@ -57,13 +57,16 @@ os_pts = (
   + neut_pts_os
 )
 
-# OS probability anchors
-os12_points = [146, 168, 181, 191, 200, 224, 232]
-os12_probs  = [0.9, 0.8, 0.7, 0.6, 0.5, 0.2, 0.1]
-os24_points = [109, 130, 144, 154, 187, 196]
-os24_probs  = [0.9, 0.8, 0.7, 0.6, 0.2, 0.1]
+# OS probability anchors (with lower anchor at 0→100%)
+os12_points = [0, 146, 168, 181, 191, 200, 224, 232]
+os12_probs  = [1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.2, 0.1]
+os24_points = [0, 109, 130, 144, 154, 187, 196]
+os24_probs  = [1.0, 0.9, 0.8, 0.7, 0.6, 0.2, 0.1]
 
-# Clip and interpolate OS probabilities
+# Clip and interpolate OS probabilities (allow full range)
+os_pts_clipped = np.clip(os_pts, 0, max(os12_points))
+os12 = np.interp(os_pts_clipped, os12_points, os12_probs) * 100
+os24 = np.interp(os_pts_clipped, os24_points, os24_probs) * 100
 os_pts_clipped = np.clip(os_pts, min(os12_points), max(os12_points))
 os12 = np.interp(os_pts_clipped, os12_points, os12_probs) * 100
 os24 = np.interp(os_pts_clipped, os24_points, os24_probs) * 100
